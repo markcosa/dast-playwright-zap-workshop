@@ -1,0 +1,24 @@
+{
+  "$comment": "Política del security gate. failOn: riesgos que rompen el pipeline. ignore: alertas aceptadas tras triage (siempre con motivo y dueño).",
+  "failOn": ["High", "Medium"],
+  "ignore": [
+    {
+      "pluginId": "10109",
+      "name": "Modern Web Application",
+      "reason": "Alerta informativa, no representa una vulnerabilidad.",
+      "owner": "equipo-qa"
+    },
+    {
+      "pluginId": "10111",
+      "name": "Authentication Request Identified",
+      "reason": "Informativa: ZAP sólo identifica el formulario de login.",
+      "owner": "equipo-qa"
+    },
+    {
+      "pluginId": "10112",
+      "name": "Session Management Response Identified",
+      "reason": "Informativa: ZAP sólo identifica la cookie de sesión.",
+      "owner": "equipo-qa"
+    }
+  ]
+}

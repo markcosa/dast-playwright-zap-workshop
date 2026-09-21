@@ -1,0 +1,4 @@
+# Finales de línea consistentes entre Windows, macOS y Linux (evita fallas en Docker/CI)
+* text=auto eol=lf
+*.png binary
+*.jpg binary

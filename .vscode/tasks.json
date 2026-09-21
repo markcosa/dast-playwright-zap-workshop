@@ -1,0 +1,14 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "Stack: levantar (vulnerable)", "type": "npm", "script": "stack:up", "problemMatcher": [] },
+    { "label": "Stack: levantar (seguro)", "type": "npm", "script": "stack:up:secure", "problemMatcher": [] },
+    { "label": "Stack: apagar", "type": "npm", "script": "stack:down", "problemMatcher": [] },
+    { "label": "Stack: ver logs", "type": "npm", "script": "stack:logs", "isBackground": true, "problemMatcher": [] },
+    { "label": "Pruebas E2E + ZAP", "type": "npm", "script": "test", "group": { "kind": "test", "isDefault": true }, "problemMatcher": [] },
+    { "label": "Security gate", "type": "npm", "script": "zap:gate", "problemMatcher": [] },
+    { "label": "DAST completo (pruebas + gate)", "type": "npm", "script": "dast", "problemMatcher": [] },
+    { "label": "Pruebas de seguridad (Playwright)", "type": "npm", "script": "test:security", "problemMatcher": [] },
+    { "label": "Abrir reporte Playwright", "type": "npm", "script": "report", "isBackground": true, "problemMatcher": [] }
+  ]
+}

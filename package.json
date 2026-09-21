@@ -1,0 +1,29 @@
+{
+  "name": "dast-playwright-zap-workshop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Taller: pruebas DAST pasivas con Playwright + OWASP ZAP en GitHub Actions",
+  "scripts": {
+    "stack:up": "node scripts/stack.mjs up",
+    "stack:up:secure": "node scripts/stack.mjs up --secure",
+    "stack:down": "node scripts/stack.mjs down",
+    "stack:logs": "node scripts/stack.mjs logs",
+    "stack:ps": "node scripts/stack.mjs ps",
+    "test": "playwright test --project=e2e",
+    "test:security": "playwright test --project=security",
+    "test:no-zap": "cross-env ZAP_ENABLED=false playwright test --project=e2e",
+    "zap:gate": "node scripts/zap-gate.mjs",
+    "dast": "npm run test && npm run zap:gate",
+    "report": "playwright show-report",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.1",
+    "@types/node": "^22.20.3",
+    "cross-env": "^10.1.0",
+    "typescript": "^5.9.0"
+  }
+}

@@ -1,0 +1,39 @@
+# Stack del taller: app demo + OWASP ZAP en modo daemon (proxy + API)
+#
+#   Playwright (host) ──proxy──▶ zap:8080 ──▶ app:3000
+#
+# El navegador NO necesita resolver "app": al usar un proxy HTTP, es ZAP quien
+# resuelve el hostname dentro de la red de Docker. Por eso la baseURL es http://app:3000
+# tanto en local (Mac/Windows/Linux) como en GitHub Actions.
+services:
+  app:
+    build: ./app
+    container_name: bancopatito
+    environment:
+      PORT: "3000"
+      SECURE_MODE: ${SECURE_MODE:-false}
+    ports:
+      - "3000:3000"   # sólo para abrir la app en tu navegador sin ZAP
+
+  zap:
+    image: zaproxy/zap-stable
+    container_name: zap-proxy
+    depends_on:
+      - app
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./zap-reports:/zap/wrk:rw
+    command:
+      - zap.sh
+      - -daemon
+      - -host
+      - 0.0.0.0
+      - -port
+      - "8090"
+      - -config
+      - api.addrs.addr.name=.*
+      - -config
+      - api.addrs.addr.regex=true
+      - -config
+      - api.key=taller-dast-key

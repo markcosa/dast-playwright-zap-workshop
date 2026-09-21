@@ -1,0 +1,90 @@
+name: DAST pasivo · Playwright + ZAP
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      secure_mode:
+        description: "Levantar la app con las correcciones de seguridad"
+        type: choice
+        options: ["false", "true"]
+        default: "false"
+      fail_on:
+        description: "Riesgos que rompen el pipeline (vacío = usar zap/policy.json)"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dast-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dast-passive:
+    name: E2E + escaneo pasivo
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "true"
+      SECURE_MODE: ${{ inputs.secure_mode || vars.SECURE_MODE || 'false' }}
+      ZAP_FAIL_ON: ${{ inputs.fail_on }}
+      ZAP_API_KEY: ${{ secrets.ZAP_API_KEY || 'taller-dast-key' }}
+      ZAP_PROXY: http://localhost:8090
+      ZAP_TARGET: http://app:3000
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Instalar Chromium de Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Levantar app + ZAP (docker compose)
+        run: |
+          mkdir -p zap-reports && chmod 777 zap-reports
+          docker compose up -d --build
+          docker compose ps
+
+      - name: Pruebas E2E a través del proxy de ZAP
+        run: npx playwright test --project=e2e
+
+      - name: Security gate (política ZAP)
+        if: ${{ !cancelled() }}
+        run: npm run zap:gate
+
+      - name: Logs de contenedores
+        if: failure()
+        run: docker compose logs --no-color --tail=200
+
+      - name: Publicar reporte de Playwright
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Publicar reportes de ZAP
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: zap-reports
+          path: zap-reports/
+          retention-days: 14
+
+      - name: Apagar stack
+        if: always()
+        run: docker compose down -v

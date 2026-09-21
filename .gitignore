@@ -1,0 +1,18 @@
+node_modules/
+app/node_modules/
+playwright-report/
+test-results/
+blob-report/
+zap-reports/
+.env
+
+# Playwright
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# Navegadores descargados y archivos del sistema
+chrome/
+chromium/
+.DS_Store

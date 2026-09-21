@@ -1,0 +1,15 @@
+{
+  "files.eol": "\n",
+  "editor.formatOnSave": false,
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "playwright.reuseBrowser": false,
+  "playwright.showTrace": true,
+  "files.exclude": {
+    "**/test-results": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "playwright-report": true,
+    "zap-reports": true
+  }
+}

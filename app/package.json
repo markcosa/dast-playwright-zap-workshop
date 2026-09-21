@@ -1,0 +1,17 @@
+{
+  "name": "bancopatito-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "App demo intencionalmente vulnerable para taller DAST",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "start:secure": "node -e \"process.env.SECURE_MODE='true';require('./server.js')\""
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

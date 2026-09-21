@@ -1,0 +1,58 @@
+# Escaneo ACTIVO: ZAP ataca la app (spider + inyecciones). Tarda más y es intrusivo,
+# por eso sólo se dispara manualmente y siempre contra un entorno efímero y aislado.
+name: DAST activo · ZAP (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      scan:
+        description: "Tipo de escaneo"
+        type: choice
+        options: ["baseline", "full"]
+        default: "baseline"
+      secure_mode:
+        description: "Levantar la app con las correcciones de seguridad"
+        type: choice
+        options: ["false", "true"]
+        default: "false"
+
+permissions:
+  contents: read
+
+jobs:
+  zap-active:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SECURE_MODE: ${{ inputs.secure_mode }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Levantar sólo la app
+        run: |
+          docker compose up -d --build app
+          for i in $(seq 1 30); do curl -fs http://localhost:3000/ >/dev/null && break; sleep 2; done
+
+      - name: ZAP baseline (spider + pasivo)
+        if: ${{ inputs.scan == 'baseline' }}
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: http://localhost:3000
+          rules_file_name: zap/rules.tsv
+          allow_issue_writing: false
+          artifact_name: zap-baseline
+          cmd_options: "-a"
+
+      - name: ZAP full scan (ataques activos)
+        if: ${{ inputs.scan == 'full' }}
+        uses: zaproxy/action-full-scan@v0.13.0
+        with:
+          target: http://localhost:3000
+          rules_file_name: zap/rules.tsv
+          allow_issue_writing: false
+          artifact_name: zap-full-scan
+          cmd_options: "-a -j"
+
+      - name: Apagar
+        if: always()
+        run: docker compose down -v

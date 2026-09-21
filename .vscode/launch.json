@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Depurar app (vulnerable) sin Docker",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/app/server.js",
+      "env": { "PORT": "3000", "SECURE_MODE": "false" },
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Depurar app (segura) sin Docker",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/app/server.js",
+      "env": { "PORT": "3000", "SECURE_MODE": "true" },
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Depurar security gate",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/zap-gate.mjs",
+      "console": "integratedTerminal"
+    }
+  ]
+}
