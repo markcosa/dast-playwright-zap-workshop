@@ -89,6 +89,15 @@ jobs:
           path: zap-reports/
           retention-days: 14
 
+      - name: Publicar reporte de remediación con código
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: zap-remediacion
+          path: zap-reports/zap-remediacion.html
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Apagar stack
         if: always()
         run: docker compose down -v
