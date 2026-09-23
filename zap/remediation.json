@@ -1,0 +1,176 @@
+{
+  "$comment": "Mapa: pluginId de ZAP -> dónde vive la falla en el código y cómo se corrige. 'marker' es un texto que debe aparecer en el archivo; el reporte muestra esa línea con contexto. 'fixMarker' apunta a la línea del modo seguro; si no existe, se usa 'fixCode'.",
+  "rules": {
+    "10036": {
+      "vuln": "VULN-01",
+      "file": "app/server.js",
+      "marker": "[VULN-01]",
+      "fix": "No anuncies el software ni su versión. Express no envía la cabecera Server por sí solo: basta con no agregarla (o sobreescribirla en el proxy inverso).",
+      "fixFile": "app/server.js",
+      "fixMarker": "app.disable('x-powered-by');"
+    },
+    "10037": {
+      "vuln": "VULN-02",
+      "file": "app/server.js",
+      "marker": "[VULN-02]",
+      "fix": "Desactiva la cabecera que Express agrega por omisión con app.disable('x-powered-by').",
+      "fixFile": "app/server.js",
+      "fixMarker": "app.disable('x-powered-by');"
+    },
+    "10038": {
+      "vuln": "VULN-03",
+      "file": "app/server.js",
+      "marker": "[VULN-03]",
+      "fix": "Define una Content Security Policy estricta. Incluye default-src, script-src, form-action, frame-ancestors, base-uri y object-src para no dejar directivas sin respaldo.",
+      "fixFile": "app/server.js",
+      "fixMarker": "'Content-Security-Policy':",
+      "fixAfter": 4
+    },
+    "10020": {
+      "vuln": "VULN-03",
+      "file": "app/server.js",
+      "marker": "[VULN-03]",
+      "fix": "Impide que la página se cargue dentro de un iframe ajeno con X-Frame-Options: DENY y frame-ancestors 'none' en la CSP.",
+      "fixFile": "app/server.js",
+      "fixMarker": "'X-Frame-Options': 'DENY',"
+    },
+    "10021": {
+      "vuln": "VULN-03",
+      "file": "app/server.js",
+      "marker": "[VULN-03]",
+      "fix": "Evita que el navegador adivine el tipo de contenido con X-Content-Type-Options: nosniff.",
+      "fixFile": "app/server.js",
+      "fixMarker": "'X-Content-Type-Options': 'nosniff',"
+    },
+    "10063": {
+      "vuln": "VULN-03",
+      "file": "app/server.js",
+      "marker": "[VULN-03]",
+      "fix": "Declara qué APIs del navegador puede usar el sitio con Permissions-Policy.",
+      "fixFile": "app/server.js",
+      "fixMarker": "'Permissions-Policy':"
+    },
+    "90004": {
+      "vuln": "VULN-03",
+      "file": "app/server.js",
+      "marker": "[VULN-03]",
+      "fix": "Aísla el sitio de otros orígenes con Cross-Origin-Opener-Policy, Cross-Origin-Embedder-Policy y Cross-Origin-Resource-Policy.",
+      "fixFile": "app/server.js",
+      "fixMarker": "'Cross-Origin-Opener-Policy': 'same-origin',",
+      "fixAfter": 2
+    },
+    "10015": {
+      "vuln": "VULN-03",
+      "file": "app/server.js",
+      "marker": "[VULN-03]",
+      "fix": "En páginas autenticadas usa Cache-Control: no-store para que el navegador y los proxies no guarden datos privados.",
+      "fixFile": "app/server.js",
+      "fixMarker": "'Cache-Control': 'no-store',"
+    },
+    "10010": {
+      "vuln": "VULN-04",
+      "file": "app/server.js",
+      "marker": "[VULN-04]",
+      "fix": "Marca la cookie de sesión como HttpOnly para que JavaScript no pueda leerla, y agrega Secure cuando el sitio corra en HTTPS.",
+      "fixFile": "app/server.js",
+      "fixMarker": "res.cookie('sessionid'"
+    },
+    "10054": {
+      "vuln": "VULN-04",
+      "file": "app/server.js",
+      "marker": "[VULN-04]",
+      "fix": "Agrega SameSite=Strict (o Lax) a la cookie de sesión para mitigar CSRF desde otros sitios.",
+      "fixFile": "app/server.js",
+      "fixMarker": "res.cookie('sessionid'"
+    },
+    "10202": {
+      "vuln": "VULN-05",
+      "file": "app/server.js",
+      "marker": "[VULN-05]",
+      "fix": "Genera un token por sesión, inclúyelo como campo oculto en cada formulario y valídalo en el servidor antes de ejecutar la acción. Para el login, que aún no tiene sesión, usa double submit cookie.",
+      "fixFile": "app/server.js",
+      "fixMarker": "const expected = req.session?.csrf;",
+      "fixAfter": 3
+    },
+    "10098": {
+      "vuln": "VULN-06",
+      "file": "app/server.js",
+      "marker": "[VULN-06]",
+      "fix": "No devuelvas Access-Control-Allow-Origin: * en endpoints con datos privados. Si necesitas CORS, enumera los orígenes permitidos.",
+      "fixCode": "// El modo seguro simplemente no envía la cabecera:\n// sin Access-Control-Allow-Origin, el navegador bloquea las lecturas de otros orígenes.\nconst allowed = new Set(['https://app.midominio.mx']);\nif (allowed.has(req.headers.origin)) res.set('Access-Control-Allow-Origin', req.headers.origin);"
+    },
+    "90022": {
+      "vuln": "VULN-07",
+      "file": "app/server.js",
+      "marker": "[VULN-07]",
+      "fix": "Responde un mensaje genérico al usuario y manda el detalle del error al log del servidor.",
+      "fixFile": "app/server.js",
+      "fixMarker": "return res.status(500).send(views.errorPage"
+    },
+    "10023": {
+      "vuln": "VULN-07",
+      "file": "app/server.js",
+      "marker": "[VULN-07]",
+      "fix": "Nunca muestres el stack trace ni mensajes de depuración al usuario final.",
+      "fixFile": "app/server.js",
+      "fixMarker": "return res.status(500).send(views.errorPage"
+    },
+    "10027": {
+      "vuln": "VULN-08",
+      "file": "app/views.js",
+      "marker": "[VULN-08]",
+      "fix": "Quita de las vistas los comentarios con credenciales, rutas internas o pendientes. Si el comentario es útil para el equipo, déjalo en el código del servidor, no en el HTML que llega al navegador.",
+      "fixCode": "// El modo seguro no imprime ningún comentario en el HTML."
+    },
+    "2": {
+      "vuln": "VULN-09",
+      "file": "app/views.js",
+      "marker": "[VULN-09]",
+      "fix": "No expongas nombres de host ni direcciones IP internas en la respuesta. Esa información ayuda a mapear tu red.",
+      "fixCode": "// El modo seguro omite el pie con la IP interna:\n${ctx.secure ? '' : '<p class=\"muted\">Atendido por app-node-02 (10.0.3.17)</p>'}"
+    },
+    "10031": {
+      "vuln": "VULN-10",
+      "file": "app/views.js",
+      "marker": "[VULN-10]",
+      "fix": "Escapa toda entrada del usuario antes de imprimirla en el HTML. Aquí, out() imprime crudo en modo inseguro; la versión correcta usa esc().",
+      "fixFile": "app/views.js",
+      "fixMarker": "const esc = (v) =>",
+      "fixAfter": 6
+    },
+    "40012": {
+      "vuln": "VULN-10",
+      "file": "app/views.js",
+      "marker": "[VULN-10]",
+      "fix": "XSS reflejado confirmado por el escaneo activo. Escapa la entrada con esc() y refuerza con una CSP que prohíba scripts en línea.",
+      "fixFile": "app/views.js",
+      "fixMarker": "const esc = (v) =>",
+      "fixAfter": 6
+    },
+    "40014": {
+      "vuln": "VULN-11",
+      "file": "app/views.js",
+      "marker": "[VULN-11]",
+      "fix": "XSS almacenado: el comentario se guarda y se sirve a todos los visitantes. Escapa al imprimir (y valida al guardar).",
+      "fixFile": "app/views.js",
+      "fixMarker": "const esc = (v) =>",
+      "fixAfter": 6
+    },
+    "10062": {
+      "vuln": "VULN-12",
+      "file": "app/server.js",
+      "marker": "[VULN-12]",
+      "fix": "Minimiza los datos: la API sólo debe devolver lo que la pantalla necesita. Enmascara la tarjeta y nunca expongas hashes de contraseñas.",
+      "fixFile": "app/server.js",
+      "fixMarker": "return res.json({ name, account, balance, card:"
+    },
+    "10097": {
+      "vuln": "VULN-12",
+      "file": "app/server.js",
+      "marker": "[VULN-12]",
+      "fix": "Un hash de contraseña nunca debe salir del servidor: facilita ataques de diccionario fuera de línea.",
+      "fixFile": "app/server.js",
+      "fixMarker": "return res.json({ name, account, balance, card:"
+    }
+  }
+}

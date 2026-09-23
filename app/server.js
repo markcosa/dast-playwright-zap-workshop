@@ -24,8 +24,16 @@ const app = express();
 // "Base de datos" en memoria
 // ---------------------------------------------------------------------------
 const users = {
-  ana: { password: 'Patito123!', name: 'Ana López', balance: 25_000, account: '0012-3456-7890' },
-  luis: { password: 'Quack2026!', name: 'Luis Pérez', balance: 8_500, account: '0098-7654-3210' },
+  ana: {
+    password: 'Patito123!', name: 'Ana López', balance: 25_000, account: '0012-3456-7890',
+    card: '4111111111111111', // tarjeta de PRUEBA (número público de Visa para testing)
+    passwordHash: '$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+  },
+  luis: {
+    password: 'Quack2026!', name: 'Luis Pérez', balance: 8_500, account: '0098-7654-3210',
+    card: '5555555555554444', // tarjeta de PRUEBA (número público de Mastercard para testing)
+    passwordHash: '$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+  },
 };
 const movements = {
   ana: [
@@ -203,8 +211,13 @@ app.post('/comments', requireAuth, checkCsrf, (req, res) => {
 // API JSON
 app.get('/api/account', requireAuth, (req, res) => {
   if (!SECURE) res.set('Access-Control-Allow-Origin', '*'); // [VULN-06] CORS abierto a cualquier origen
-  const { name, account, balance } = req.user;
-  res.json({ name, account, balance });
+  const { name, account, balance, card, passwordHash } = req.user;
+  if (SECURE) {
+    // Sólo lo necesario: tarjeta enmascarada y nada de credenciales
+    return res.json({ name, account, balance, card: `**** **** **** ${card.slice(-4)}` });
+  }
+  // [VULN-12] Exposición de datos sensibles: tarjeta completa y hash de la contraseña
+  res.json({ name, account, balance, card, passwordHash });
 });
 
 // Endpoint que falla a propósito

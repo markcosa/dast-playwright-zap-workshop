@@ -1,6 +1,6 @@
 # Stack del taller: app demo + OWASP ZAP en modo daemon (proxy + API)
 #
-#   Playwright (host) ──proxy──▶ zap:8080 ──▶ app:3000
+#   Playwright (host) ──proxy──▶ zap:8090 ──▶ app:3000
 #
 # El navegador NO necesita resolver "app": al usar un proxy HTTP, es ZAP quien
 # resuelve el hostname dentro de la red de Docker. Por eso la baseURL es http://app:3000

@@ -13,8 +13,9 @@
     "test:security": "playwright test --project=security",
     "test:no-zap": "cross-env ZAP_ENABLED=false playwright test --project=e2e",
     "zap:gate": "node scripts/zap-gate.mjs",
-    "dast": "npm run test && npm run zap:gate",
     "report": "playwright show-report",
+    "report:code": "node scripts/zap-report-code.mjs",
+    "dast": "npm run test && npm run zap:gate; npm run report:code",
     "typecheck": "tsc --noEmit"
   },
   "engines": {

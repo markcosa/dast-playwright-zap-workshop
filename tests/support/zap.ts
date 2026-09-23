@@ -10,7 +10,7 @@ try {
 /** Configuración central del taller (sobrescribible por variables de entorno). */
 export const zapConfig = {
   enabled: process.env.ZAP_ENABLED !== 'false',
-  proxy: process.env.ZAP_PROXY ?? `http://localhost:${process.env.ZAP_HOST_PORT ?? '8080'}`,
+  proxy: process.env.ZAP_PROXY ?? `http://localhost:${process.env.ZAP_HOST_PORT ?? '8090'}`,
   apiKey: process.env.ZAP_API_KEY ?? 'taller-dast-key',
   /** URL de la app vista DESDE ZAP (red de Docker). */
   target: process.env.ZAP_TARGET ?? 'http://app:3000',

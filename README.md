@@ -7,7 +7,7 @@ Proyecto demo para enseñar **pruebas DAST pasivas** reutilizando pruebas funcio
 ```
 ┌──────────────┐  proxy HTTP   ┌───────────────┐   red docker   ┌──────────────────┐
 │  Playwright  │ ────────────▶ │  ZAP (daemon) │ ─────────────▶ │  BancoPatito     │
-│  (host / CI) │ ◀──────────── │  :8080        │ ◀───────────── │  app:3000        │
+│  (host / CI) │ ◀──────────── │  :8090        │ ◀───────────── │  app:3000        │
 └──────┬───────┘               └───────┬───────┘                └──────────────────┘
        │ global-teardown               │ API REST
        ▼                               ▼
@@ -63,7 +63,7 @@ Otros comandos útiles: `npm run test:security` corre las aserciones de segurida
 |---|---|---|
 | `SECURE_MODE` | `false` | Modo de la app (lo lee docker compose) |
 | `ZAP_ENABLED` | `true` | `false` desactiva proxy y reportes |
-| `ZAP_PROXY` | `http://localhost:8080` | Proxy y API de ZAP |
+| `ZAP_PROXY` | `http://localhost:8090` | Proxy y API de ZAP |
 | `ZAP_API_KEY` | `taller-dast-key` | API key de ZAP (en CI usa el secret `ZAP_API_KEY`) |
 | `ZAP_TARGET` | `http://app:3000` | URL de la app vista desde ZAP; es la `baseURL` de Playwright |
 | `ZAP_FAIL_ON` | *(policy.json)* | Sobrescribe los riesgos que rompen el gate, p. ej. `High` |
@@ -98,7 +98,7 @@ El proyecto parte de la idea de *Turning Functional Tests into Security Guards* 
 
 | Síntoma | Causa y solución |
 |---|---|
-| `ZAP no respondió en 120s` | ZAP sigue arrancando o el puerto 8080 está ocupado. Revisa `npm run stack:logs` |
+| `ZAP no respondió en 120s` | ZAP sigue arrancando o el puerto 8090 está ocupado. Revisa `npm run stack:logs` |
 | `ZAP API ... respondió 403` | API key distinta entre compose y Playwright. Usa la misma `ZAP_API_KEY` |
 | Pruebas con `net::ERR_NAME_NOT_RESOLVED` para `app` | Corriste con `ZAP_ENABLED=false`; usa `npm run test:no-zap` |
 | No aparece `zap-report.html` | Permisos del volumen en Linux: `chmod 777 zap-reports` (lo hace `npm run stack:up`) |

@@ -63,3 +63,11 @@ test.describe('Manejo de errores', () => {
     expect(html).not.toMatch(/\b10\.\d+\.\d+\.\d+\b/);
   });
 });
+
+test.describe('Datos sensibles', () => {
+  test('la API no expone la tarjeta completa ni el hash de la contraseña', async ({ authedPage: page }) => {
+    const body = await (await page.request.get('/api/account')).json();
+    expect(body.card).not.toMatch(/^\d{13,19}$/);
+    expect(body).not.toHaveProperty('passwordHash');
+  });
+});

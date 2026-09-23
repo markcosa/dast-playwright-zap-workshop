@@ -11,5 +11,8 @@
     "**/node_modules": true,
     "playwright-report": true,
     "zap-reports": true
+  },
+  "chat.tools.terminal.autoApprove": {
+    "git remote": true
   }
 }
