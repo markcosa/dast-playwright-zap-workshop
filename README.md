@@ -105,3 +105,4 @@ El proyecto parte de la idea de *Turning Functional Tests into Security Guards* 
 | El gate dice que no existe `zap-alerts.json` | El teardown no corrió o falló; revisa la salida al final de `npm test` |
 | Cambié `SECURE_MODE` y no se nota | Recrea el contenedor: `npm run stack:up:secure` usa `--force-recreate` |
 
+

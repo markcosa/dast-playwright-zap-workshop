@@ -1,6 +1,6 @@
 import { test, expect } from '../support/fixtures';
 
-test.describe('Transferencias', () => { // test funcional de transfencia 150 pesos
+test.describe('Transferencias', () => { // test funcional con playwright de transfencia 150 pesos
   test('transfiere a otro usuario y descuenta el saldo', async ({ authedPage: page, dashboard }) => {
     const before = await dashboard.balanceValue();
 
