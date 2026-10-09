@@ -1,0 +1,145 @@
+name: Seguridad (SAST / SCA / Secretos / IaC)
+
+# Pipeline estándar de análisis de seguridad — ADBC / Coordinación de Gobierno Digital
+# Fase 1: Semgrep (SAST) + Trivy y OSV-Scanner (SCA) + Gitleaks y TruffleHog (secretos) + Checkov (IaC).
+# Resultados -> artefactos + resumen del job + (opcional) DefectDojo. El "gate" bloquea si hay HIGH/CRITICAL.
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+  workflow_dispatch:        # permite correrlo a mano desde la pestaña Actions
+
+permissions:
+  contents: read
+  pull-requests: write      # para comentar el resumen en el PR
+  security-events: write    # solo se usa si activan la subida SARIF (requiere GitHub Code Security en repos privados)
+
+concurrency:
+  group: seguridad-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analisis:
+    name: analisis            # <-- este es el nombre del "status check" para la branch protection
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Umbral del gate: INFO | LOW | MEDIUM | HIGH | CRITICAL  (falla si hay algo >= al umbral)
+      GATE_SEVERITY: ${{ vars.GATE_SEVERITY || 'HIGH' }}
+
+    steps:
+      - name: Checkout (historial completo para secretos)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0       # TruffleHog/Gitleaks revisan todo el historial
+
+      - name: Preparar carpeta de reportes
+        run: mkdir -p reports
+
+      - name: Instalar herramientas
+        run: |
+          set -euo pipefail
+          echo "::group::Semgrep + Checkov (pip)"
+          pipx install semgrep || pip install --user semgrep
+          pipx install checkov || pip install --user checkov
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/.local/bin:$PATH"
+          echo "::endgroup::"
+
+          echo "::group::Trivy"
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          echo "::endgroup::"
+
+          echo "::group::TruffleHog"
+          curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
+          echo "::endgroup::"
+
+          echo "::group::Gitleaks (última release)"
+          GL_VER=$(curl -s https://api.github.com/repos/gitleaks/gitleaks/releases/latest | grep -Po '"tag_name": "v\K[^"]*')
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GL_VER}/gitleaks_${GL_VER}_linux_x64.tar.gz" -o /tmp/gl.tgz
+          tar -xzf /tmp/gl.tgz -C /tmp gitleaks
+          sudo mv /tmp/gitleaks /usr/local/bin/gitleaks
+          echo "::endgroup::"
+
+          echo "::group::OSV-Scanner (última release)"
+          OSV_VER=$(curl -s https://api.github.com/repos/google/osv-scanner/releases/latest | grep -Po '"tag_name": "v\K[^"]*')
+          curl -sSfL "https://github.com/google/osv-scanner/releases/download/v${OSV_VER}/osv-scanner_linux_amd64" -o /usr/local/bin/osv-scanner
+          chmod +x /usr/local/bin/osv-scanner
+          echo "::endgroup::"
+
+      # ---------------- SAST ----------------
+      - name: Semgrep (SAST)
+        continue-on-error: true
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          semgrep scan \
+            --config p/default --config p/secrets --config p/owasp-top-ten \
+            --metrics=off --error=false --no-git-ignore \
+            --json --output reports/semgrep.json .
+
+      # ---------------- SCA ----------------
+      - name: Trivy (dependencias, secretos, IaC, licencias)
+        continue-on-error: true
+        run: |
+          trivy fs --scanners vuln,secret,misconfig,license \
+            --format json --output reports/trivy.json \
+            --severity LOW,MEDIUM,HIGH,CRITICAL .
+
+      - name: OSV-Scanner (segunda opinión de dependencias)
+        continue-on-error: true
+        run: |
+          osv-scanner scan --recursive --format json --output reports/osv.json . || true
+
+      # ---------------- Secretos ----------------
+      - name: Gitleaks (secretos en el historial)
+        continue-on-error: true
+        run: |
+          gitleaks detect --source . --report-format json --report-path reports/gitleaks.json --redact || true
+
+      - name: TruffleHog (secretos verificados)
+        continue-on-error: true
+        run: |
+          trufflehog filesystem . --json --no-update > reports/trufflehog.json || true
+
+      # ---------------- IaC ----------------
+      - name: Checkov (IaC / configuración)
+        continue-on-error: true
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          checkov -d . --output json --compact --quiet > reports/checkov.json || true
+
+      # ---------------- Publicar a DefectDojo (opcional) ----------------
+      - name: Importar a DefectDojo
+        if: ${{ env.DEFECTDOJO_URL != '' }}
+        continue-on-error: true
+        env:
+          DEFECTDOJO_URL: ${{ secrets.DEFECTDOJO_URL }}
+          DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
+          PRODUCT_NAME: ${{ github.repository }}
+          ENGAGEMENT_NAME: CI-${{ github.ref_name }}
+        run: bash scripts/defectdojo-import.sh
+
+      # ---------------- Subir reportes como artefacto ----------------
+      - name: Guardar reportes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reportes-seguridad
+          path: reports/
+          retention-days: 30
+
+      # ---------------- (Opcional) GitHub Code Scanning ----------------
+      # Descomentar SOLO si tienen GitHub Code Security (en repos privados es de pago).
+      # Requiere que Semgrep/Trivy emitan SARIF (ver nota en el README).
+      # - name: Subir SARIF a Code Scanning
+      #   if: ${{ vars.ENABLE_CODE_SCANNING == 'true' }}
+      #   uses: github/codeql-action/upload-sarif@v3
+      #   with:
+      #     sarif_file: reports/semgrep.sarif
+
+      # ---------------- Gate: decide aprobar o bloquear ----------------
+      - name: Resumen y gate
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          python3 scripts/gate.py --reports-dir reports --threshold "$GATE_SEVERITY" --summary "$GITHUB_STEP_SUMMARY"
