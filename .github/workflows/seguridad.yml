@@ -22,7 +22,7 @@ concurrency:
 jobs:
   analisis:
     name: analisis            # <-- este es el nombre del "status check" para la branch protection
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS]  
     timeout-minutes: 30
     env:
       # Umbral del gate: INFO | LOW | MEDIUM | HIGH | CRITICAL  (falla si hay algo >= al umbral)
