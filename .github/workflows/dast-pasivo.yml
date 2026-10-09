@@ -35,7 +35,7 @@ jobs:
       ZAP_API_KEY: ${{ secrets.ZAP_API_KEY || 'taller-dast-key' }}
       ZAP_PROXY: http://localhost:8090
       ZAP_TARGET: http://app:3000
-
+    if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
