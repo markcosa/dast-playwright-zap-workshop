@@ -25,6 +25,7 @@ jobs:
     timeout-minutes: 45
     env:
       SECURE_MODE: ${{ inputs.secure_mode }}
+    if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
       - uses: actions/checkout@v7
 
