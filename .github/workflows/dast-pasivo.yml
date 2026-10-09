@@ -75,7 +75,7 @@ jobs:
 
       - name: Publicar reporte de Playwright
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-report
           path: playwright-report/
@@ -83,7 +83,7 @@ jobs:
 
       - name: Publicar reportes de ZAP
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v6
         with:
           name: zap-reports
           path: zap-reports/
@@ -91,7 +91,7 @@ jobs:
 
       - name: Publicar reporte de remediación con código
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v6
         with:
           name: zap-remediacion
           path: zap-reports/zap-remediacion.html
