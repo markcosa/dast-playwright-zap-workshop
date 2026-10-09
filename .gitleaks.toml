@@ -1,0 +1,21 @@
+# .gitleaks.toml — configuración base de Gitleaks.
+# Extiende el set de reglas por defecto y agrega una allowlist para reducir
+# falsos positivos (archivos de ejemplo, fixtures de prueba, etc.).
+title = "ADBC Gitleaks config"
+
+[extend]
+useDefault = true    # usa todas las reglas estándar de Gitleaks
+
+[allowlist]
+description = "Rutas y patrones que NO deben reportarse"
+paths = [
+  '''(^|/)vendor/''',
+  '''(^|/)node_modules/''',
+  '''(^|/).*\.lock$''',
+  '''(^|/)tests?/fixtures?/''',
+  '''(^|/).*\.example$''',
+  '''(^|/).*\.sample$''',
+  '''(^|/)\.env\.example$''',
+]
+# Ejemplo para permitir un valor concreto que sabes que es de prueba:
+# regexes = ['''EXAMPLE_API_KEY_0{8,}''']

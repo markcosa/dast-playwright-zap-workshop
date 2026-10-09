@@ -1,0 +1,42 @@
+# Dependabot — alertas y PRs automáticos de actualización de dependencias.
+# Gratis en GitHub (incluye repos privados). Ajusta los "package-ecosystem"
+# a lo que realmente use el repo y quita los que no apliquen.
+version: 2
+updates:
+  # --- PHP / Composer (Laravel, CodeIgniter) ---
+  - package-ecosystem: "composer"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels: ["dependencias", "seguridad"]
+
+  # --- JavaScript / npm (Vue, Angular, Node) ---
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels: ["dependencias", "seguridad"]
+
+  # --- Python / pip (si aplica) ---
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels: ["dependencias", "seguridad"]
+
+  # --- Las propias GitHub Actions de este repo ---
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["ci", "seguridad"]
+
+  # --- Imágenes Docker (si hay Dockerfile) ---
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencias", "seguridad"]
