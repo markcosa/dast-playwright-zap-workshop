@@ -17,6 +17,7 @@ set -uo pipefail
 : "${DEFECTDOJO_URL:?falta DEFECTDOJO_URL}"
 : "${DEFECTDOJO_TOKEN:?falta DEFECTDOJO_TOKEN}"
 PRODUCT_NAME="${PRODUCT_NAME:-proyecto}"
+PRODUCT_TYPE_NAME="${PRODUCT_TYPE_NAME:-GitHub CI}"   # agrupador requerido para crear el Product
 ENGAGEMENT_NAME="${ENGAGEMENT_NAME:-CI}"
 REPORTS_DIR="${REPORTS_DIR:-reports}"
 BASE="${DEFECTDOJO_URL%/}"
@@ -30,6 +31,7 @@ _post() {
     -F "scan_type=${scan_type}" \
     -F "file=@${archivo}" \
     -F "product_name=${PRODUCT_NAME}" \
+    -F "product_type_name=${PRODUCT_TYPE_NAME}" \
     -F "engagement_name=${ENGAGEMENT_NAME}" \
     -F "auto_create_context=true" \
     -F "active=true" -F "verified=false" \
