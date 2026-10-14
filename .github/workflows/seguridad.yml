@@ -39,17 +39,26 @@ jobs:
 
       - name: Instalar herramientas (macOS self-hosted)
         run: |
+          set -e
           # Localiza Homebrew aunque el runner tenga PATH mínimo
-          if [ -x /opt/homebrew/bin/brew ]; then BREW=/opt/homebrew/bin/brew       # Apple Silicon
-          elif [ -x /usr/local/bin/brew ]; then BREW=/usr/local/bin/brew           # Intel
-          else echo "Homebrew no está instalado en el runner"; exit 1; fi
+          if [ -x /opt/homebrew/bin/brew ]; then BREW=/opt/homebrew/bin/brew
+          elif [ -x /usr/local/bin/brew ]; then BREW=/usr/local/bin/brew
+          else echo "Homebrew no está instalado"; exit 1; fi
           eval "$($BREW shellenv)"
-          # Deja el PATH de Homebrew disponible para los pasos siguientes (scan, gate, import)
           echo "$(dirname "$BREW")" >> "$GITHUB_PATH"
-          # Instala/asegura la suite (idempotente, binarios de macOS, sin sudo)
-          brew install semgrep checkov trivy gitleaks osv-scanner trufflehog
-          semgrep --version && checkov --version && trivy --version && gitleaks version && osv-scanner --version && trufflehog --version
+          echo "$HOME/.local/bin"   >> "$GITHUB_PATH"
+          export PATH="$HOME/.local/bin:$PATH"
 
+          # Binarios (Go) por brew — no compilan nada
+          brew install trivy gitleaks osv-scanner trufflehog pipx
+
+          # Herramientas de Python por pipx — usan wheels, NO compilan numpy
+          pipx install semgrep
+          pipx install checkov
+
+          # Verificación
+          trivy --version && gitleaks version && osv-scanner --version && trufflehog --version
+          semgrep --version && checkov --version
       # ---------------- SAST ----------------
       - name: Semgrep (SAST)
         continue-on-error: true
