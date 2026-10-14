@@ -1,65 +1,79 @@
 name: Seguridad (SAST / SCA / Secretos / IaC)
 
-# Pipeline estándar de análisis de seguridad — ADBC / Coordinación de Gobierno Digital
+# Pipeline de análisis de seguridad — ADBC / Coordinación de Gobierno Digital
 # Fase 1: Semgrep (SAST) + Trivy y OSV-Scanner (SCA) + Gitleaks y TruffleHog (secretos) + Checkov (IaC).
-# Resultados -> artefactos + resumen del job + (opcional) DefectDojo. El "gate" bloquea si hay HIGH/CRITICAL.
+#
+# MODELO HÍBRIDO:
+#   - Job "analisis"  -> corre en ubuntu-latest (nube de GitHub): instala, escanea, gate. Gratis y rápido.
+#   - Job "publicar"  -> corre en el runner self-hosted de la Mac: solo sube los reportes a DefectDojo
+#                        en localhost con curl (no necesita Homebrew ni Python).
 
 on:
   push:
     branches: [main, master, develop]
   pull_request:
-  workflow_dispatch:        # permite correrlo a mano desde la pestaña Actions
+  workflow_dispatch:
 
 permissions:
   contents: read
-  pull-requests: write      # para comentar el resumen en el PR
-  security-events: write    # solo se usa si activan la subida SARIF (requiere GitHub Code Security en repos privados)
+  pull-requests: write
+  security-events: write
 
 concurrency:
   group: seguridad-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  # ======================================================================
+  # 1) ESCANEO — en la nube de GitHub (ubuntu-latest)
+  # ======================================================================
   analisis:
-    name: analisis            # <-- este es el nombre del "status check" para la branch protection
-    runs-on: [self-hosted, macOS]  
+    name: analisis            # <-- nombre del "status check" para la branch protection
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      # Umbral del gate: INFO | LOW | MEDIUM | HIGH | CRITICAL  (falla si hay algo >= al umbral)
       GATE_SEVERITY: ${{ vars.GATE_SEVERITY || 'HIGH' }}
 
     steps:
       - name: Checkout (historial completo para secretos)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0       # TruffleHog/Gitleaks revisan todo el historial
+          fetch-depth: 0
 
       - name: Preparar carpeta de reportes
         run: mkdir -p reports
 
-      - name: Instalar herramientas (macOS self-hosted)
+      - name: Instalar herramientas (Linux)
         run: |
-          set -e
-          # Homebrew solo para los binarios (Go), que sí instalan bien
-          if [ -x /opt/homebrew/bin/brew ]; then BREW=/opt/homebrew/bin/brew
-          elif [ -x /usr/local/bin/brew ]; then BREW=/usr/local/bin/brew
-          else echo "Homebrew no está instalado"; exit 1; fi
-          eval "$($BREW shellenv)"
-          echo "$(dirname "$BREW")" >> "$GITHUB_PATH"
-          brew install trivy gitleaks osv-scanner trufflehog
+          set -euo pipefail
+          echo "::group::Semgrep + Checkov (pip)"
+          pipx install semgrep || pip install --user semgrep
+          pipx install checkov || pip install --user checkov
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/.local/bin:$PATH"
+          echo "::endgroup::"
 
-          # Semgrep y Checkov en un venv con el Python del SISTEMA
-          # (evita el Python roto de Homebrew; pip baja wheels, no compila)
-          /usr/bin/python3 -m venv "$HOME/.sec-tools"
-          "$HOME/.sec-tools/bin/pip" install --upgrade pip
-          "$HOME/.sec-tools/bin/pip" install semgrep checkov
-          echo "$HOME/.sec-tools/bin" >> "$GITHUB_PATH"
+          echo "::group::Trivy"
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          echo "::endgroup::"
 
-          # Verificación
-          trivy --version && gitleaks version && osv-scanner --version && trufflehog --version
-          "$HOME/.sec-tools/bin/semgrep" --version
-          "$HOME/.sec-tools/bin/checkov" --version
-      # ---------------- SAST ----------------
+          echo "::group::TruffleHog"
+          curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
+          echo "::endgroup::"
+
+          echo "::group::Gitleaks (última release)"
+          GL_VER=$(curl -s https://api.github.com/repos/gitleaks/gitleaks/releases/latest | grep -Po '"tag_name": "v\K[^"]*')
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GL_VER}/gitleaks_${GL_VER}_linux_x64.tar.gz" -o /tmp/gl.tgz
+          tar -xzf /tmp/gl.tgz -C /tmp gitleaks
+          sudo mv /tmp/gitleaks /usr/local/bin/gitleaks
+          echo "::endgroup::"
+
+          echo "::group::OSV-Scanner (última release)"
+          OSV_VER=$(curl -s https://api.github.com/repos/google/osv-scanner/releases/latest | grep -Po '"tag_name": "v\K[^"]*')
+          curl -sSfL "https://github.com/google/osv-scanner/releases/download/v${OSV_VER}/osv-scanner_linux_amd64" -o /usr/local/bin/osv-scanner
+          chmod +x /usr/local/bin/osv-scanner
+          echo "::endgroup::"
+
       - name: Semgrep (SAST)
         continue-on-error: true
         run: |
@@ -69,7 +83,6 @@ jobs:
             --metrics=off --error=false --no-git-ignore \
             --json --output reports/semgrep.json .
 
-      # ---------------- SCA ----------------
       - name: Trivy (dependencias, secretos, IaC, licencias)
         continue-on-error: true
         run: |
@@ -82,7 +95,6 @@ jobs:
         run: |
           osv-scanner scan --recursive --format json --output reports/osv.json . || true
 
-      # ---------------- Secretos ----------------
       - name: Gitleaks (secretos en el historial)
         continue-on-error: true
         run: |
@@ -93,25 +105,13 @@ jobs:
         run: |
           trufflehog filesystem . --json --no-update > reports/trufflehog.json || true
 
-      # ---------------- IaC ----------------
       - name: Checkov (IaC / configuración)
         continue-on-error: true
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           checkov -d . --output json --compact --quiet > reports/checkov.json || true
 
-      # ---------------- Publicar a DefectDojo (opcional) ----------------
-      - name: Importar a DefectDojo
-        if: ${{ env.DEFECTDOJO_URL != '' }}
-        continue-on-error: true
-        env:
-          DEFECTDOJO_URL: ${{ secrets.DEFECTDOJO_URL }}
-          DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
-          PRODUCT_NAME: ${{ github.repository }}
-          ENGAGEMENT_NAME: CI-${{ github.ref_name }}
-        run: bash scripts/defectdojo-import.sh
-
-      # ---------------- Subir reportes como artefacto ----------------
+      # Reportes como artefacto -> los consume el job "publicar" (self-hosted)
       - name: Guardar reportes
         if: always()
         uses: actions/upload-artifact@v4
@@ -120,17 +120,44 @@ jobs:
           path: reports/
           retention-days: 30
 
-      # ---------------- (Opcional) GitHub Code Scanning ----------------
-      # Descomentar SOLO si tienen GitHub Code Security (en repos privados es de pago).
-      # Requiere que Semgrep/Trivy emitan SARIF (ver nota en el README).
-      # - name: Subir SARIF a Code Scanning
-      #   if: ${{ vars.ENABLE_CODE_SCANNING == 'true' }}
-      #   uses: github/codeql-action/upload-sarif@v3
-      #   with:
-      #     sarif_file: reports/semgrep.sarif
-
-      # ---------------- Gate: decide aprobar o bloquear ----------------
       - name: Resumen y gate
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           python3 scripts/gate.py --reports-dir reports --threshold "$GATE_SEVERITY" --summary "$GITHUB_STEP_SUMMARY"
+
+  # ======================================================================
+  # 2) SUBIDA A DEFECTDOJO — en el runner self-hosted de la Mac
+  #    Solo usa curl (bash). Alcanza localhost:8085 porque corre EN la Mac.
+  #    Corre aunque el gate haya bloqueado (if: always) para no perder hallazgos.
+  # ======================================================================
+  publicar:
+    name: publicar-defectdojo
+    needs: analisis
+    if: always()
+    runs-on: [self-hosted, macOS]
+    timeout-minutes: 15
+    env:
+      DEFECTDOJO_URL: ${{ secrets.DEFECTDOJO_URL }}
+      DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
+      PRODUCT_NAME: ${{ github.repository }}
+      ENGAGEMENT_NAME: CI-${{ github.ref_name }}
+
+    steps:
+      - name: Checkout (para el script de importación)
+        if: ${{ env.DEFECTDOJO_URL != '' }}
+        uses: actions/checkout@v4
+
+      - name: Descargar reportes del job de escaneo
+        if: ${{ env.DEFECTDOJO_URL != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: reportes-seguridad
+          path: reports
+
+      - name: Importar a DefectDojo (localhost)
+        if: ${{ env.DEFECTDOJO_URL != '' }}
+        run: bash scripts/defectdojo-import.sh
+
+      - name: DefectDojo no configurado (aviso)
+        if: ${{ env.DEFECTDOJO_URL == '' }}
+        run: echo "Secreto DEFECTDOJO_URL vacío — se omite la subida a DefectDojo."
