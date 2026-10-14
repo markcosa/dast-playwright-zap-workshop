@@ -70,8 +70,18 @@ jobs:
 
           echo "::group::OSV-Scanner (última release)"
           OSV_VER=$(curl -s https://api.github.com/repos/google/osv-scanner/releases/latest | grep -Po '"tag_name": "v\K[^"]*')
-          curl -sSfL "https://github.com/google/osv-scanner/releases/download/v${OSV_VER}/osv-scanner_linux_amd64" -o /usr/local/bin/osv-scanner
-          chmod +x /usr/local/bin/osv-scanner
+          OSV_BASE_URL="https://github.com/google/osv-scanner/releases/download/v${OSV_VER}"
+          if curl -sSfL "${OSV_BASE_URL}/osv-scanner_linux_amd64" -o /usr/local/bin/osv-scanner; then
+            chmod +x /usr/local/bin/osv-scanner
+          elif curl -sSfL "${OSV_BASE_URL}/osv-scanner_${OSV_VER}_linux_amd64.tar.gz" -o /tmp/osv.tgz \
+            || curl -sSfL "${OSV_BASE_URL}/osv-scanner_linux_amd64.tar.gz" -o /tmp/osv.tgz; then
+            tar -xzf /tmp/osv.tgz -C /tmp osv-scanner
+            sudo mv /tmp/osv-scanner /usr/local/bin/osv-scanner
+            chmod +x /usr/local/bin/osv-scanner
+          else
+            echo "No se pudo descargar osv-scanner para Linux amd64" >&2
+            exit 1
+          fi
           echo "::endgroup::"
 
       - name: Semgrep (SAST)
