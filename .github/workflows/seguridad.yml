@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Checkout (historial completo para secretos)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -145,7 +145,7 @@ jobs:
     steps:
       - name: Checkout (para el script de importación)
         if: ${{ env.DEFECTDOJO_URL != '' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Descargar reportes del job de escaneo
         if: ${{ env.DEFECTDOJO_URL != '' }}
