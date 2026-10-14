@@ -80,7 +80,7 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           semgrep scan \
             --config p/default --config p/secrets --config p/owasp-top-ten \
-            --metrics=off --error=false --no-git-ignore \
+            --metrics=off --no-git-ignore \
             --json --output reports/semgrep.json .
 
       - name: Trivy (dependencias, secretos, IaC, licencias)
