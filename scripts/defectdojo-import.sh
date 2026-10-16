@@ -11,7 +11,7 @@
 #
 # Estrategia: intenta REIMPORT (actualiza el test existente, sin duplicar);
 # si el test aún no existe (primer envío) y devuelve 400/404, cae a IMPORT (lo crea).
-# Imprime el cuerpo de la respuesta cuando hay error, para diagnóstico..
+# Imprime el cuerpo de la respuesta cuando hay error, para diagnóstico...
 set -uo pipefail
 
 : "${DEFECTDOJO_URL:?falta DEFECTDOJO_URL}"
